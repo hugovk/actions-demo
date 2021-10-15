@@ -1,6 +1,39 @@
 ---
 name: Slash Command Dispatch
-on: 
+on:
   issue_comment:
     types: [ created ]
-
+jobs:
+  slashCommandDispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slash Command Dispatch
+        if: github.actor == 'primetheus'
+        id: scd
+        uses: peter-evans/slash-command-dispatch@v2
+        with:
+          token: ${{ secrets.TOKEN }}
+          commands: |
+            deploy
+            
+      - name: Comment on issue if user is not authorized
+        if: github.actor != 'primetheus'
+        uses: peter-evans/create-or-update-comment@v1
+        with: 
+          comment-id: ${{ github.event.comment.id }}
+          reactions: confused
+          body: |
+            <br>
+            
+            ---
+            Sorry, @${{ github.actor }}, but you are not authorized to run this command
+      
+      - name: Comment on issue if user is not authorized
+        if: steps.scd.outputs.error-message
+        uses: peter-evans/create-or-update-comment@v1
+        with: 
+          comment-id: ${{ github.event.comment.id }}
+          reactions: confused
+          body: |
+            > ${{ steps.scd.outputs.error-message }}
+      
