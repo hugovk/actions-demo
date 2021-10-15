@@ -1,24 +1,27 @@
 ---
 name: Deploy servers to AWS
-on: 
+
+on:
   repository_dispatch:
     types: [ deploy-command ]
 
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-  
+
 jobs:
-  setup: 
+  ######################
+  # Setup the test run #
+  ######################
+  setup:
     name: Prepare environment
     runs-on: ubuntu-latest
     outputs:
-      environment: ''
-      os-version: ''
-      region: ''
-      instance-count: ''
-      ssh-key: ''
-
+      environment: ${{ steps.config.outputs.environment }}
+      os-version: ${{ steps.config.outputs.os-version }}
+      region: ${{ steps.config.outputs.region }}
+      instance-count: ${{ steps.config.outputs.instance-count }}
+      ssh-key: ${{ steps.config.outputs.ssh-key }}
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v2
@@ -29,7 +32,7 @@ jobs:
         with:
           github-issue: ${{ github.event.client_payload.github.payload.issue.url }}
           token: ${{ secrets.TOKEN }}
-
+      
       - name: Create SSH key
         working-directory: build
         run: |
@@ -40,7 +43,7 @@ jobs:
       - name: Change key permissions
         working-directory: build
         run: chmod 400 ssh-key.pem
-
+      
       - name: Print settings
         run: |
           echo '${{ steps.parser.outputs.general-settings }}' | jq -r .
@@ -73,17 +76,17 @@ jobs:
           fi
 
           echo "::set-output name=ssh-key::$(ssh-keygen -y -f ssh-key.pem)"
-
+      
       - name: Compress workspace
         run: tar -czf /tmp/workspace.tgz .
-
+      
       - name: Upload temp files from setup
         uses: actions/upload-artifact@v2
         with:
           name: workspace
           path: /tmp/workspace.tgz
           retention-days: 1
-      
+
       - name: Report an error
         if: ${{ failure() && github.event.client_payload }}
         uses: peter-evans/create-or-update-comment@v1
@@ -96,7 +99,10 @@ jobs:
           body: |
             > Error while performing **deploy**
             > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
-  
+
+  #################################
+  # Provision the load generators #
+  #################################
   provision:
     name: Provision servers
     runs-on: ubuntu-latest
@@ -145,6 +151,9 @@ jobs:
             > Error while performing **deploy**
             > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
 
+  #################################
+  # Configure the load generators #
+  #################################
   configure:
     name: Configure servers
     runs-on: ubuntu-latest
@@ -199,6 +208,9 @@ jobs:
             > Error while performing **deploy**
             > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
 
+  ###########################
+  # Cleanup the web servers #
+  ###########################
   cleanup-servers:
     name: Cleanup test environment
     runs-on: ubuntu-latest
@@ -231,7 +243,7 @@ jobs:
           body: |
             > Error while performing **deploy**
             > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
-      
+  
       - uses: geekyeggo/delete-artifact@v1
         if: always()
         with:
