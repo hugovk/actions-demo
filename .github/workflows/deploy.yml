@@ -1,0 +1,31 @@
+---
+name: Deploy servers to AWS
+on: 
+  repository_dispatch:
+    types: [ deploy-command ]
+    
+ env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  
+  jobs:
+    setup: 
+      name: Prepare environment
+      runs-on: ubuntu-latest
+      outputs:
+        environment: ''
+        os-version: ''
+        region: ''
+        instance-count: ''
+        ssh-key: ''
+      
+      steps:
+        - name: Checkout this repo
+          uses: actions/checkout@v2
+          
+        - id: parser
+          name: Parse the issue body
+          uses: ./.github/actions/parse_issue
+          with:
+            github-issue: ${{ github.event.client_payload.github.payload.issue.url }}
+            token: ${{ secrets.TOKEN }}
