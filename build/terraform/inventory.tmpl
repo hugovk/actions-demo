@@ -1,0 +1,15 @@
+all:
+  children:
+    webservers:
+      vars:
+        ansible_user: ubuntu
+        ansible_connection: ssh
+        ansible_ssh_private_key_file: ${ssh-private-key}
+        ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o ServerAliveInterval=10
+        ansible_python_interpreter: /usr/bin/python3
+      hosts:
+%{ for index, dns in demo-server-public-dns ~}
+        ${demo-server-name[index]}:
+          ansible_host: ${demo-server-public-ip[index]}
+          web_url: http://${demo-server-public-dns[index]}
+%{ endfor ~}

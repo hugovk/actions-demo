@@ -1,0 +1,7 @@
+{
+  "aws_region": "us-east-2", // Region where servers should be created
+  "instance_count": 1, // Number of servers
+  "handle": "octocat", // Your github handle
+  "ec2_key_pair_public_key": "RSA PUBLIC KEY", // Public key to be used to access created servers
+  "ssh_private_key_path": "~/.ssh/ssh-key.pem" // Path to private key file to access demo server
+}
