@@ -29,3 +29,18 @@ on:
           with:
             github-issue: ${{ github.event.client_payload.github.payload.issue.url }}
             token: ${{ secrets.TOKEN }}
+            
+        - name: Create SSH key
+          working-directory: build
+          run: |
+            cat > ssh-key.pem <<EOF
+            ${{ secrets.SSH_KEY }}
+            EOF
+
+        - name: Change key permissions
+          working-directory: build
+          run: chmod 400 ssh-key.pem
+
+        - name: Print settings
+          run: |
+            echo '${{ steps.parser.outputs.general-settings }}' | jq -r .
