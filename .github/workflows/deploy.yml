@@ -44,3 +44,55 @@ jobs:
       - name: Print settings
         run: |
           echo '${{ steps.parser.outputs.general-settings }}' | jq -r .
+      
+      - name: Set configuration values
+        id: config
+        run: |
+          if [[ '${{ github.event.client_payload.slash_command.args.named.env }}' ]];then
+            echo "::set-output name=environment::${{ github.event.client_payload.slash_command.args.named.env }}"
+          else
+            echo "::set-output name=environment::$(echo '${{ steps.parser.outputs.general-settings }}' | jq -r '."Environment"')"
+          fi
+          
+          if [[ '${{ github.event.client_payload.slash_command.args.named.os }}' ]];then
+            echo "::set-output name=os-version::${{ github.event.client_payload.slash_command.args.named.os }}"
+          else
+            echo "::set-output name=os-version::$(echo '${{ steps.parser.outputs.general-settings }}' | jq -r '."OS Version"')"
+          fi
+          
+          if [[ '${{ github.event.client_payload.slash_command.args.named.region }}' ]];then
+            echo "::set-output name=region::${{ github.event.client_payload.slash_command.args.named.region }}"
+          else
+            echo "::set-output name=region::$(echo '${{ steps.parser.outputs.general-settings }}' | jq -r '."Region"')"
+          fi
+          
+          if [[ '${{ github.event.client_payload.slash_command.args.named.count }}' ]];then
+            echo "::set-output name=instance-count::${{ github.event.client_payload.slash_command.args.named.count }}"
+          else
+            echo "::set-output name=instance-count::$(echo '${{ steps.parser.outputs.general-settings }}' | jq -r '."Instance count"')"
+          fi
+
+          echo "::set-output name=ssh-key::$(ssh-keygen -y -f ssh-key.pem)"
+
+      - name: Compress workspace
+        run: tar -czf /tmp/workspace.tgz .
+
+      - name: Upload temp files from setup
+        uses: actions/upload-artifact@v2
+        with:
+          name: workspace
+          path: /tmp/workspace.tgz
+          retention-days: 1
+      
+      - name: Report an error
+        if: ${{ failure() && github.event.client_payload }}
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          issue-number: ${{ github.event.client_payload.github.payload.issue.number }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          edit-mode: append
+          reactions: confused
+          body: |
+            > Error while performing **deploy**
+            > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
