@@ -8,17 +8,18 @@ inputs:
   token: 
     description: GitHub token
     required: true
-  outputs:
-    general-settings:
-      description: General settings for this demo
-      value: ${{ steps.general-params.outputs.general-settings }}
+
+outputs:
+  general-settings:
+    description: General settings for this demo
+    value: ${{ steps.general-params.outputs.general-settings }}
   
-  runs:
-    using: "composite"
-    steps:
-      - run: | 
-          curl -sH "Authorization: token ${{ inputs.token }}" ${{ inputs.github-issue }} | jq -r .body > /tmp/issue_body
-        shell: bash
-      - id: general-params
-        run: echo "::set-output name=general-settings::$(python3 .github/actions/parse_issue/parse-table.py)"
-        shell: bash
+runs:
+  using: "composite"
+  steps:
+    - run: | 
+        curl -sH "Authorization: token ${{ inputs.token }}" ${{ inputs.github-issue }} | jq -r .body > /tmp/issue_body
+      shell: bash
+    - id: general-params
+      run: echo "::set-output name=general-settings::$(python3 .github/actions/parse_issue/parse-table.py)"
+      shell: bash
