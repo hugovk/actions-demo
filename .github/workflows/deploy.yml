@@ -4,43 +4,43 @@ on:
   repository_dispatch:
     types: [ deploy-command ]
     
- env:
+env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
   
-  jobs:
-    setup: 
-      name: Prepare environment
-      runs-on: ubuntu-latest
-      outputs:
-        environment: ''
-        os-version: ''
-        region: ''
-        instance-count: ''
-        ssh-key: ''
-      
-      steps:
-        - name: Checkout this repo
-          uses: actions/checkout@v2
-          
-        - id: parser
-          name: Parse the issue body
-          uses: ./.github/actions/parse_issue
-          with:
-            github-issue: ${{ github.event.client_payload.github.payload.issue.url }}
-            token: ${{ secrets.TOKEN }}
-            
-        - name: Create SSH key
-          working-directory: build
-          run: |
-            cat > ssh-key.pem <<EOF
-            ${{ secrets.SSH_KEY }}
-            EOF
+jobs:
+  setup: 
+    name: Prepare environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ''
+      os-version: ''
+      region: ''
+      instance-count: ''
+      ssh-key: ''
 
-        - name: Change key permissions
-          working-directory: build
-          run: chmod 400 ssh-key.pem
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v2
 
-        - name: Print settings
-          run: |
-            echo '${{ steps.parser.outputs.general-settings }}' | jq -r .
+      - id: parser
+        name: Parse the issue body
+        uses: ./.github/actions/parse_issue
+        with:
+          github-issue: ${{ github.event.client_payload.github.payload.issue.url }}
+          token: ${{ secrets.TOKEN }}
+
+      - name: Create SSH key
+        working-directory: build
+        run: |
+          cat > ssh-key.pem <<EOF
+          ${{ secrets.SSH_KEY }}
+          EOF
+
+      - name: Change key permissions
+        working-directory: build
+        run: chmod 400 ssh-key.pem
+
+      - name: Print settings
+        run: |
+          echo '${{ steps.parser.outputs.general-settings }}' | jq -r .
