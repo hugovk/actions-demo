@@ -10,6 +10,7 @@ DELIMTERS = {
     },
 }
 
+
 def extract_table(file='/tmp/issue_body', table='main'):
     """
     Extract the table from the file and return it as a JSON object
@@ -25,8 +26,9 @@ def extract_table(file='/tmp/issue_body', table='main'):
     end = issue.find(DELIMTERS[table.lower()]["end"])
     md_table = issue[start:end]
     return md_table.strip()
-  
-  def mrkd2json(inp):
+
+
+def mrkd2json(inp):
     """
     Convert the table to a JSON object. This keeps only the first two columns
 
@@ -40,9 +42,9 @@ def extract_table(file='/tmp/issue_body', table='main'):
         else:
             settings.setdefault(l.split('|')[1].strip(), l.split('|')[2].strip())
     return json.dumps(settings) 
-  
-  
-  if __name__ == '__main__':
+
+
+if __name__ == '__main__':
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description='Convert a Markdown Table to JSON')
     parser.add_argument('--file', '-f', dest='file', default='/tmp/issue_body', help='The file to convert')

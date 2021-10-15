@@ -1,0 +1,55 @@
+name: 'Provision Servers'
+description: 'Provision Servers'
+inputs:
+  args:
+    description: Args passed via /slash-command
+    required: false
+  settings:
+    description: Demo settings
+    required: true
+
+runs:
+  using: "composite"
+  steps:  
+    - name: HashiCorp - Setup Terraform
+      uses: hashicorp/setup-terraform@v1.2.1
+
+    - name: Initialize Terraform
+      working-directory: build/terraform
+      run: terraform init
+      shell: bash
+
+    - name: Create TFVars file
+      working-directory: build/terraform
+      run: |
+        cat > terraform.tfvars.json <<EOF
+        {
+          "aws_region": "${{ fromJson(inputs.settings).region }}",
+          "instance_count": ${{ fromJson(inputs.settings).instance-count }},
+          "handle": "${{ github.actor }}",
+          "ec2_key_pair_public_key": "$(ssh-keygen -y -f ../ssh-key.pem)",
+          "ssh_private_key_path": "../ssh-key.pem"
+        }
+        EOF
+      shell: bash
+
+    - name: Check terraform variables
+      working-directory: build/terraform
+      run: cat terraform.tfvars.json
+      shell: bash
+
+    - name: Terraform Plan
+      working-directory: build/terraform
+      run: terraform plan -var-file=terraform.tfvars.json -out ${{ github.actor }}
+      shell: bash
+
+    - name: Terraform Apply
+      id: terraform
+      working-directory: build/terraform
+      run: terraform apply ${{ github.actor }}
+      shell: bash
+
+    - name: Check Ansible Inventory
+      working-directory: build/ansible
+      run: cat hosts.yml
+      shell: bash

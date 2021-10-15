@@ -96,3 +96,51 @@ jobs:
           body: |
             > Error while performing **deploy**
             > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
+  
+  provision:
+    name: Provision servers
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: workspace
+          path: /tmp
+      
+      - run: tar -xf /tmp/workspace.tgz
+      
+      - id: provision
+        name: Terraform Provisioning
+        uses: ./.github/actions/provision
+        with:
+          args: ${{ toJson(github.event.client_payload.slash_command.args) }}
+          settings: ${{ toJson(needs.setup.outputs) }}
+
+      - name: Compress workspace
+        run: tar -czf /tmp/workspace.tgz .
+      
+      - name: Upload temp files from setup
+        uses: actions/upload-artifact@v2
+        with:
+          name: workspace
+          path: /tmp/workspace.tgz
+          retention-days: 1
+      
+      - name: Terraform Destroy
+        if: ${{ failure() }}
+        working-directory: build/terraform
+        run: terraform destroy -auto-approve
+
+      - name: Report an error
+        if: ${{ failure() && github.event.client_payload }}
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          issue-number: ${{ github.event.client_payload.github.payload.issue.number }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          edit-mode: append
+          reactions: confused
+          body: |
+            > Error while performing **deploy**
+            > See [action run log](${{ github.event.client_payload.github.payload.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
